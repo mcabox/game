@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 关键：开启响应式适配，解决不同设备显示问题 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"> 
+    <title>别让女友生气！</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        
+        body {
+            background-color: #e5e5ea;
+            /* 让页面占满视口，适配不同分辨率 */
+            width: 100vw; 
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .wechat-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            /* 让容器填充父级（body），并可滚动 */
+            flex: 1; 
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .wechat-header {
+            background-color: #07c160;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            /* 固定高度，避免挤压内容 */
+            height: 50px; 
+        }
+        
+        .wechat-header h2 {
+            font-size: 18px;
+            font-weight: normal;
+            line-height: 50px; /* 垂直居中 */
+        }
+        
+        /* 生气值区域 */
+        .anger-meter {
+            padding: 10px 15px;
+            background-color: #fff;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .anger-bar {
+            height: 8px;
+            background-color: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .anger-level {
+            height: 100%;
+            background-color: #07c160;
+            width: 20%;
+            transition: width 0.5s, background-color 0.5s;
+        }
+        
+        /* 聊天内容区域：可滚动 */
+        .chat-messages {
+            /* 占满剩余空间，超出部分滚动 */
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 15px;
+            background-color: #f5f5f5;
+            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="%23f5f5f5"/><path d="M0 0L100 100M100 0L0 100" stroke="%23e5e5e5" stroke-width="0.5" stroke-dasharray="2 2"/></svg>');
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            max-width: 70%;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .her-message {
+            margin-right: auto;
+        }
+        
+        .my-message {
+            margin-left: auto;
+        }
+        
+        .message-bubble {
+            padding: 10px 15px;
+            border-radius: 20px;
+            position: relative;
+        }
+        
+        .her-message .message-bubble {
+            background-color: white;
+            border-top-left-radius: 5px;
+        }
+        
+        .my-message .message-bubble {
+            background-color: #95ec69;
+            border-top-right-radius: 5px;
+        }
+        
+        .message-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        /* 回复选项区域：固定在底部 */
+        .reply-options {
+            padding: 15px;
+            background-color: white;
+            border-top: 1px solid #eee;
+            /* 固定高度，避免被挤压 */
+            height: 120px; 
+            overflow-y: auto; /* 选项多了也能滚动 */
+        }
+        
+        .reply-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 20px;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .reply-btn:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            display: none;
+        }
+        
+        .game-over h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        
+        .restart-btn {
+            padding: 10px 20px;
+            background-color: #07c160;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="wechat-container">
+        <div class="wechat-header">
+            <h2>女友</h2>
+        </div>
+        
+        <div class="anger-meter">
+            <div>生气值</div>
+            <div class="anger-bar">
+                <div class="anger-level" id="angerLevel"></div>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message her-message">
+                <div class="message-bubble">
+                    亲爱的，在干嘛呢？
+                </div>
+                <div class="message-time">12:30</div>
+            </div>
+        </div>
+        
+        <div class="reply-options" id="replyOptions">
+            <button class="reply-btn" data-anger="0" data-response="刚忙完，正想你呢～">刚忙完，正想你呢～</button>
+            <button class="reply-btn" data-anger="10" data-response="没干嘛，玩手机呢">没干嘛，玩手机呢</button>
+            <button class="reply-btn" data-anger="5" data-response="在工作呢，等下找你聊～">在工作呢，等下找你聊～</button>
+        </div>
+    </div>
+    
+    <div class="game-over" id="gameOver">
+        <h2>游戏结束</h2>
+        <p>女友生气了，哄不好的那种！</p>
+        <button class="restart-btn" id="restartBtn">重新开始</button>
+    </div>
+
+    <script>
+        // 游戏数据
+        const gameState = {
+            angerLevel: 20,
+            currentStage: 0,
+            conversation: [
+                {
+                    herMessage: "那你觉得我今天穿的裙子好看吗？",
+                    replies: [
+                        { text: "特别好看，很适合你～", anger: -5 },
+                        { text: "还行吧，一般般", anger: 20 },
+                        { text: "没注意看，发张照片我看看？", anger: 15 }
+                    ]
+                },
+                {
+                    herMessage: "我刚才看了一件衣服，有点贵，你觉得我该买吗？",
+                    replies: [
+                        { text: "喜欢就买呀，钱不够我给你转", anger: -10 },
+                        { text: "又买衣服？你不是有很多了吗", anger: 30 },
+                        { text: "发我看看，要是合适就买", anger: 0 }
+                    ]
+                },
+                {
+                    herMessage: "我闺蜜男朋友送了她一个名牌包，你觉得好看吗？",
+                    replies: [
+                        { text: "一般般，不如我下次给你挑个更适合你的", anger: -5 },
+                        { text: "挺好的，你也想要？", anger: 15 },
+                        { text: "一般吧，没你气质好", anger: -10 }
+                    ]
+                },
+                {
+                    herMessage: "我今天好像胖了，你觉得呢？",
+                    replies: [
+                        { text: "没有啊，我觉得刚刚好，一点都不胖", anger: -10 },
+                        { text: "好像是有点，你该减肥了", anger: 40 },
+                        { text: "胖点好，手感好，我喜欢", anger: 5 }
+                    ]
+                },
+                {
+                    herMessage: "我们好久没出去约会了，你什么时候有空？",
+                    replies: [
+                        { text: "对不起啊，最近太忙了，这周末我一定陪你", anger: 0 },
+                        { text: "没时间啊，最近工作特别忙", anger: 25 },
+                        { text: "这周末我安排一下，带你去吃你最喜欢的那家餐厅", anger: -15 }
+                    ]
+                }
+            ]
+        };
+
+        // DOM元素
+        const chatMessages = document.getElementById('chatMessages');
+        const replyOptions = document.getElementById('replyOptions');
+        const angerLevel = document.getElementById('angerLevel');
+        const gameOver = document.getElementById('gameOver');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // 更新生气值显示
+        function updateAngerLevel() {
+            angerLevel.style.width = `${gameState.angerLevel}%`;
+            
+            // 改变颜色表示严重程度
+            if (gameState.angerLevel > 70) {
+                angerLevel.style.backgroundColor = '#ff3b30';
+            } else if (gameState.angerLevel > 40) {
+                angerLevel.style.backgroundColor = '#ff9500';
+            } else {
+                angerLevel.style.backgroundColor = '#07c160';
+            }
+            
+            // 检查是否游戏结束
+            if (gameState.angerLevel >= 100) {
+                gameOver.style.display = 'flex';
+            }
+        }
+
+        // 添加消息到聊天窗口
+        function addMessage(text, isMyMessage) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isMyMessage ? 'my-message' : 'her-message'}`;
+            
+            const now = new Date();
+            const timeString = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    ${text}
+                </div>
+                <div class="message-time">${timeString}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            // 消息新增后自动滚动到底部
+            chatMessages.scrollTop = chatMessages.scrollHeight; 
+        }
+
+        // 显示下一轮回复选项
+        function showReplyOptions() {
+            if (gameState.currentStage >= gameState.conversation.length) {
+                // 如果所有对话完成
+                addMessage("你今天表现不错哦～ 晚上请你吃饭！", false);
+                replyOptions.innerHTML = '';
+                return;
+            }
+            
+            const current = gameState.conversation[gameState.currentStage];
+            addMessage(current.herMessage, false);
+            
+            // 清空并添加新的回复选项
+            replyOptions.innerHTML = '';
+            current.replies.forEach(reply => {
+                const btn = document.createElement('button');
+                btn.className = 'reply-btn';
+                btn.textContent = reply.text;
+                btn.dataset.anger = reply.anger;
+                btn.dataset.response = reply.text;
+                
+                btn.addEventListener('click', handleReply);
+                replyOptions.appendChild(btn);
+            });
+        }
+
+        // 处理回复
+        function handleReply(e) {
+            const angerChange = parseInt(e.target.dataset.anger);
+            const responseText = e.target.dataset.response;
+            
+            // 添加我的回复
+            addMessage(responseText, true);
+            
+            // 更新生气值
+            gameState.angerLevel = Math.max(0, Math.min(100, gameState.angerLevel + angerChange));
+            updateAngerLevel();
+            
+            // 进入下一轮
+            gameState.currentStage++;
+            
+            // 延迟显示下一条消息，模拟真实聊天
+            setTimeout(showReplyOptions, 1000);
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            gameState.angerLevel = 20;
+            gameState.currentStage = 0;
+            chatMessages.innerHTML = `
+                <div class="message her-message">
+                    <div class="message-bubble">
+                        亲爱的，在干嘛呢？
+                    </div>
+                    <div class="message-time">12:30</div>
+                </div>
+            `;
+            gameOver.style.display = 'none';
+            updateAngerLevel();
+            replyOptions.innerHTML = `
+                <button class="reply-btn" data-anger="0" data-response="刚忙完，正想你呢～">刚忙完，正想你呢～</button>
+                <button class="reply-btn" data-anger="10" data-response="没干嘛，玩手机呢">没干嘛，玩手机呢</button>
+                <button class="reply-btn" data-anger="5" data-response="在工作呢，等下找你聊～">在工作呢，等下找你聊～</button>
+            `;
+            
+            // 重新绑定事件
+            document.querySelectorAll('.reply-btn').forEach(btn => {
+                btn.addEventListener('click', handleReply);
+            });
+        }
+
+        // 初始化事件监听
+        document.querySelectorAll('.reply-btn').forEach(btn => {
+            btn.addEventListener('click', handleReply);
+        });
+        
+        restartBtn.addEventListener('click', restartGame);
+
+        // 初始化生气值
+        updateAngerLevel();
+    </script>
+</body>
+</html>
